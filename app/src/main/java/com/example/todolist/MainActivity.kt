@@ -20,13 +20,21 @@ import com.example.todolist.ui.theme.ToDoListTheme
 import java.util.*
 
 class MainActivity : ComponentActivity() {
+    private lateinit var taskRepository: TaskRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        taskRepository = TaskRepository(this)
+
         enableEdgeToEdge()
         setContent {
             ToDoListTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    TodoListApp(modifier = Modifier.padding(innerPadding))
+                    TodoListApp(
+                        modifier = Modifier.padding(innerPadding),
+                        initialTasks = taskRepository.loadTasks(),
+                        saveTasks = { tasks -> taskRepository.saveTasks(tasks) }
+                    )
                 }
             }
         }
@@ -40,9 +48,18 @@ data class Task(
 )
 
 @Composable
-fun TodoListApp(modifier: Modifier = Modifier) {
+fun TodoListApp(
+    modifier: Modifier = Modifier,
+    initialTasks: List<Task> = emptyList(),
+    saveTasks: (List<Task>) -> Unit = {}
+) {
     var newTaskText by remember { mutableStateOf("") }
-    var tasks by remember { mutableStateOf(listOf<Task>()) }
+    var tasks by remember { mutableStateOf(initialTasks) }
+
+    // Save tasks whenever they change
+    LaunchedEffect(tasks) {
+        saveTasks(tasks)
+    }
 
     Column(
         modifier = modifier
@@ -116,7 +133,7 @@ fun TodoListApp(modifier: Modifier = Modifier) {
 
             // Divider between sections
             item {
-                Divider(modifier = Modifier.padding(vertical = 16.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
             }
 
             // Completed tasks section
